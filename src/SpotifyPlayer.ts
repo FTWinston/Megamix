@@ -1,12 +1,13 @@
 export class SpotifyPlayer {
-    private player: any; // Spotify.SpotifyPlayer;
+    public pauseChanged?: (paused: boolean) => void;
+    public stateChanged?: (state: Spotify.PlaybackState) => void;
     private isPaused: boolean = false;
+    private player: any; // Spotify.SpotifyPlayer;
 
     constructor(
         deviceName: string,
         apiToken: string,
-        ready?: () => void,
-        stateChanged?: (state: Spotify.PlaybackState) => void,
+        onReady?: () => void,
     ) {
         this.player = new Spotify.Player({
             getOAuthToken: (cb: (val: string) => void) => { cb(apiToken); },
@@ -19,19 +20,25 @@ export class SpotifyPlayer {
         this.player.addListener('account_error', (message: string) => { console.error(message); });
         this.player.addListener('playback_error', (message: string) => { console.error(message); });
 
+        // all state changes in the one event listener
         this.player.addListener('player_state_changed', (state: Spotify.PlaybackState) => {
+            const wasPaused = this.isPaused;
             this.isPaused = state.paused;
 
-            if (stateChanged !== undefined) {
-                stateChanged(state);
+            if (this.pauseChanged !== undefined && this.isPaused !== wasPaused) {
+                this.pauseChanged(this.isPaused);
+            }
+
+            if (this.stateChanged !== undefined) {
+                this.stateChanged(state);
             }
         });
 
         this.player.addListener('ready', (deviceID: string) => {
-            console.log('Ready with Device ID', deviceID);
-
-            if (ready !== undefined) {
-                ready();
+            console.log('Device ID is ready', deviceID);
+            
+            if (onReady !== undefined) {
+                onReady();
             }
         });
 
@@ -43,7 +50,13 @@ export class SpotifyPlayer {
     }
     
     public get paused(): boolean { return this.isPaused; }
-    
+
+    public set onPauseResume(action: (paused: boolean) => void) {
+        this.player.addListener('player_state_changed', (state: Spotify.PlaybackState) => {
+            action(state.paused);
+        });
+    }
+
     public loadTracks(spotifyUris: string[]) {
         this.player._options.getOAuthToken((accessToken: string) => {
             fetch(`https://api.spotify.com/v1/me/player/play?device_id=${this.player._options.id}`, {
