@@ -1,6 +1,7 @@
 import * as React from 'react';
 import './App.css';
 import { SpotifyPlayer } from './SpotifyPlayer';
+import { TrackDisplay } from './TrackDisplay';
 import { ITrackChange, TrackHandler } from './TrackHandler';
 
 import logo from './logo.svg';
@@ -21,26 +22,41 @@ let trackHandler: TrackHandler;
         'BQDFSKhZEK0NvovyvmAfhm7K81vIvFgl7-QyQ_RlnSf3q0oFUIg48U18MgFLT9Mdri3ILdMKHXcIAwtJHM73AeltwUKWEcTklAlo0SiQABNOWBRC4CQsjtrY17yhK-YLBWfBK1KJYxE4AyoYVdOsvkt0hv10Maz_ghRgXSNKOA',
         () => {
             trackHandler = new TrackHandler(player, trackData);
-
-            trackHandler.reset(); // not actually needed
+            trackHandler.reset(); // This line not actually needed
         }
     );
 };
 
-class App extends React.PureComponent {
-  public render() {
-    return (
-      <div className="App">
-        <header className="App-header">
-          <img src={logo} className="App-logo" alt="logo" />
-          <h1 className="App-title">Spotify Megamix</h1>
-        </header>
-        <p className="App-intro">
-          To get started, edit <code>src/App.tsx</code> and save to reload.
-        </p>
-      </div>
-    );
-  }
+interface IAppState {
+  tracks: ITrackChange[];
+  currentTrack?: ITrackChange;
+}
+
+class App extends React.PureComponent<{}, IAppState> {
+    constructor(props: {}) {
+        super(props);
+
+        this.state = {
+            tracks: trackData,
+        };
+    }
+
+    public render() {
+        const trackDisplay = this.state.tracks
+            .map((t, index) => <TrackDisplay uri={t.track} start={t.start} end={t.end} active={t === this.state.currentTrack} key={index} />);
+
+        return (
+            <div className="App">
+                <header className="App-header">
+                    <img src={logo} className="App-logo" alt="logo" />
+                    <h1 className="App-title">Spotify Megamix</h1>
+                </header>
+                <div className="App-intro">
+                  {trackDisplay}
+                </div>
+            </div>
+        );
+    }
 }
 
 export default App;

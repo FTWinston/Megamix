@@ -1,0 +1,19 @@
+.trackDisplay {
+  display: flex;
+  margin: 0.25em;
+  padding: 0 0.5em;
+  background-color: #ccc;
+}
+
+.trackDisplay--active {
+  background-color: #6ca;
+}
+
+.trackDisplay__uri {
+  width: 20em;
+  text-align: left;
+}
+
+.trackDisplay__time {
+  width: 15em;
+}
