@@ -19,7 +19,7 @@ export class TrackHandler {
     public trackChanged?: (name: string) => void;
     public positionChanged?: (position: number) => void;
     private iCurrentTrack: number;
-    private currentTrackUri: string;
+    private currentTrackUri?: string;
     private trackTimeout: NodeJS.Timer | undefined;
     private positionInterval: NodeJS.Timer | undefined;
     private player: SpotifyPlayer;
@@ -46,7 +46,7 @@ export class TrackHandler {
 
     public reset() {
         this.iCurrentTrack = -1;
-        this.currentTrackUri = '';
+        this.currentTrackUri = undefined;
 
         if (this.trackTimeout !== undefined) {
             clearTimeout(this.trackTimeout);
@@ -66,10 +66,11 @@ export class TrackHandler {
     
     private playerStateChanged(state: Spotify.PlaybackState) {
         if (state.paused) {
+            console.log('pausing');
             return;
         }
         
-        if (this.iCurrentTrack === -1 || state.track_window.current_track.uri !== this.currentTrackUri) {
+        if (this.iCurrentTrack === -1 || state.track_window.current_track.uri !== this.tracks[this.iCurrentTrack].track) {
             this.iCurrentTrack ++;
             if (this.iCurrentTrack >= this.tracks.length) {
                 return;
@@ -84,6 +85,8 @@ export class TrackHandler {
             }
             
             const track = this.tracks[this.iCurrentTrack];
+            console.log('next up', track);
+
             if (track.start !== 0) {
                 this.player.seek(track.start);
             }
@@ -96,32 +99,19 @@ export class TrackHandler {
                 this.trackTimeout = setTimeout(() => this.endCurrentTrack(), track.end - track.start);
             }
 
-            if (this.trackChanged !== undefined && state.track_window.current_track.uri !== track.track) {
-                this.trackChanged(state.track_window.current_track.name);
+            if (this.iCurrentTrack === 0 || state.track_window.current_track.uri !== track.track) {
+                this.currentTrackUri = track.track;
+
+                if (this.trackChanged !== undefined) {
+                    this.trackChanged(state.track_window.current_track.name);
+                }
             }
         }
-        
-        /*
-        positionData = {
-            startPos: state.position,
-            startAt: new Date(),
-        };
-
-        if (positionInterval !== undefined) {
-            clearInterval(positionInterval);
-        }
-        
-        // displayPosition.innerText = Math.round(positionData.startPos / 1000).toString();
-        positionInterval = setInterval(() => {
-            // displayPosition.innerText = Math.round((positionData.startPos + (new Date().getTime() - positionData.startAt.getTime())) / 1000).toString();
-        }, 1000);
-        // displayNumber.innerText = `#${iCurrentTrack + 1}`;
-
-        */
     }
 
     private endCurrentTrack() {
-        if (this.iCurrentTrack < this.tracks.length) {
+        if (this.iCurrentTrack > this.tracks.length - 2) {
+            this.player.pause();
             return;
         }
 
